@@ -108,7 +108,7 @@ export function PlayerScreen(initial, { offset = null } = {}) {
     open(position).catch(e => failed(e.message || String(e)));
   };
   let triedFallback = false;
-  let base = 0;             // HLS restarts at an offset; player time is relative to it
+  let base = 0;             // stays 0: with copyts=1 the player clock is already absolute (includes the offset)
   let position = offset || 0;
   let duration = initial.duration || 0;
   let paused = false;
@@ -273,7 +273,11 @@ export function PlayerScreen(initial, { offset = null } = {}) {
       base = 0;
       url = server.url(part.key);
     } else {
-      base = atMs;
+      // copyts=1 makes the transcode stream's timestamps start at the offset,
+      // so ExoPlayer's clock (ms) is already absolute (starts at atMs). base
+      // must stay 0, or onTime (pos = base + ms) double-counts the offset and
+      // the timeline jumps ahead after every skip/resume.
+      base = 0;
       // Burn in only what we can't draw ourselves (image subs, embedded text).
       const burn = subStream && !isSidecarText(subStream);
       url = server.transcodeUrl(item, {
