@@ -7,9 +7,10 @@
     "lint": "eslint web/js tizen/js scripts tests",
     "test": "node --test tests/unit.test.mjs tests/epg.test.mjs tests/livetv.test.mjs tests/xtream.test.mjs tests/sponsorblock.test.mjs",
     "test:browser": "node --test tests/browser.test.mjs",
-    "test:tizen": "node --test tests/tizen.test.mjs",
+    "test:tizen": "node --test tests/tizen.test.mjs tests/tizen-cert.test.mjs",
     "build:tizen": "node scripts/build-tizen.mjs",
-    "ci": "npm run lint && npm test && npm run test:browser && npm run test:tizen"
+    "ci": "npm run lint && npm test && npm run test:browser && npm run test:tizen",
+    "tizen:samsung-cert": "node scripts/tizen-samsung-cert.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -17,6 +18,7 @@
     "eslint": "^9.39.0",
     "globals": "^15.15.0",
     "jsdom": "^24.1.3",
+    "node-forge": "^1.4.2",
     "playwright": "1.63.0"
   }
 }

@@ -49,6 +49,8 @@ npm run ci                   # all of the above
 - `tests/tizen.test.mjs` — the Samsung build: Chromium 63-safe syntax, CSS
   fallbacks, and the app in Chromium with fake AVPlay/Tizen APIs (keys, film
   playback, live TV bridge). See [TIZEN.md](TIZEN.md).
+- `tests/tizen-cert.test.mjs` — the Samsung certificate script against a
+  fake Samsung developer CA: requests, sign-in callback, readable `.p12` files.
 
 GitHub Actions runs the **Tests** workflow on every branch push and pull
 request, and the APK build only runs once the tests pass.

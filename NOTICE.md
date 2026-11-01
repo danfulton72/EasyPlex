@@ -15,6 +15,9 @@ Bundled third-party components keep their own licences:
 - Inter and Barlow Condensed fonts — SIL Open Font License (`web/fonts/LICENSE-*.txt`)
 - QR code generator — see the header of `web/js/vendor/qrcode.js`
 - AndroidX WebKit and Media3 — Apache License 2.0
-- esbuild (build tool only, not shipped) — MIT
+- esbuild and node-forge (build/install tools only, not shipped) — MIT and BSD-3-Clause/GPL-2.0
+- `scripts/tizen-samsung-cert.mjs` follows the certificate requests of
+  [Apps2Samsung](https://github.com/Apps2Samsung/Apps2Samsung) (MIT, © 2025 Patrick Stel);
+  `tizen/ca/` holds Samsung's public developer CA certificates, as distributed with it
 
 EasyPlex is independent of Plex, Humax, Dangbei, Google and Samsung.

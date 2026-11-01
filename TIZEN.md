@@ -78,27 +78,52 @@ GitHub Actions, unzip it and run `./scripts/tizen-deploy.sh --app <that folder>`
 **Home → Apps**, scroll to the bottom. To pin it, highlight EasyPlex, hold OK
 (or press Down) and choose **Add to Home**.
 
-### "Check certificate error" when installing
+### Which certificate your TV needs
 
-Some Samsung firmware only accepts apps signed with a **Samsung certificate**
-tied to the TV. If the install fails with a certificate or signature error:
+`tizen-setup.sh` makes a plain **Tizen** certificate, as SamSUCKS does. Samsung
+TVs from 2019 to 2022 (Tizen 5.0 to 6.5, including the UE55RU7470) accept that
+in Developer Mode, so try it first. 2023 and later TVs (Tizen 7+) need a
+**Samsung** certificate tied to the TV. If the deploy script reports a
+certificate or signature error, make one:
 
-1. Install [Tizen Studio](https://developer.tizen.org/development/tizen-studio/download)
-   with the GUI and, in Package Manager → Extension SDK, add **Samsung
-   Certificate Extension**.
-2. Open **Certificate Manager** → **+** → **Samsung** → **TV**. Sign in with a
-   (free) Samsung account and create a new author certificate.
-3. For the distributor certificate choose privilege **Public** and add your
-   TV's DUID (setup saved it in `.env` as `TV_DUID`).
-4. Put the new profile's name in `.env` as `TIZEN_SIGN_PROFILE=` and run
-   `./scripts/tizen-deploy.sh` again.
+```sh
+node scripts/tizen-samsung-cert.mjs
+./scripts/tizen-deploy.sh
+```
+
+The certificate script replaces Tizen Studio's Certificate Manager, which
+Samsung no longer supports:
+
+1. It opens Samsung's account sign-in in your browser; a free account is fine.
+   If "Sign in with Google" doesn't finish, add a password to your Samsung
+   account and sign in with that.
+2. It creates a key pair and two certificate requests on your computer. The
+   private key never leaves it.
+3. It sends the requests to Samsung's developer CA, the same service Samsung's
+   own tools use. The distributor certificate names your TV's DUID, which
+   `tizen-setup.sh` saved in `.env`.
+4. It writes `author.p12`, `distributor.p12` and `password.txt` to
+   `~/SamsungCertificate/easyplex-samsung`. Keep a copy of that folder, because
+   reinstalls must be signed with the same author certificate.
+5. It adds the certificate to the Tizen CLI as profile `easyplex-samsung` and
+   sets `TIZEN_SIGN_PROFILE` in `.env`.
+
+More TVs: `--duid <DUID>` once per TV. Other options are listed at the top of
+the script. The request format follows
+[Apps2Samsung](https://github.com/Apps2Samsung/Apps2Samsung) (MIT), which
+creates certificates the same way; Samsung's public CA certificates it needs
+are in `tizen/ca/`.
 
 ### Windows
 
 Use Tizen Studio (GUI) instead of the scripts: build the app folder with
 `npm ci && npm run build:tizen` (or download the CI artifact), then in Tizen
 Studio use **Device Manager** to connect to the TV's IP (port 26101), create a
-certificate in **Certificate Manager**, and install the folder with:
+Tizen certificate in **Certificate Manager**, and install the folder with the
+commands below. If the TV needs a Samsung certificate, run
+`node scripts/tizen-samsung-cert.mjs --duid <DUID>` instead of the Certificate
+Manager; it works on Windows too, and prints the `security-profiles add`
+command if it can't find the Tizen CLI.
 
 ```bat
 %USERPROFILE%\tizen-studio\tools\ide\bin\tizen.bat package -t wgt -s <profile> -o out -- build\tizen\app
@@ -152,6 +177,7 @@ Down or hold OK.
 | `tizen/js/polyfills.js`, `tizen/css/tizen.css` | Chromium 63 support; the live TV layer's styles |
 | `scripts/build-tizen.mjs` | The build described above |
 | `scripts/tizen-setup.sh`, `scripts/tizen-deploy.sh` | Install tooling, adapted from SamSUCKS |
+| `scripts/tizen-samsung-cert.mjs`, `tizen/ca/` | Samsung certificate without Tizen Studio (for TVs that refuse the Tizen one) |
 | `tests/tizen.test.mjs` | Builds, checks the output parses as ES2018, and runs it in Chromium against fake Tizen APIs with the newer APIs removed |
 
 The web UI in `web/` is shared, so a feature added for Android appears on the

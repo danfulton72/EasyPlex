@@ -66,15 +66,12 @@ echo "$RESULT" | grep -E 'install completed|Installed|error|fail|Fail' || true
 if echo "$RESULT" | grep -qiE 'certificate|signature'; then
   cat >&2 <<EOF
 
-  The TV refused the signature. Some Samsung TVs only accept apps signed with a
-  Samsung certificate tied to the TV. Create one (free Samsung account needed):
-    1. Open Tizen Studio's Certificate Manager (in $TIZEN_STUDIO/tools/certificate-manager),
-       or install Tizen Studio with the GUI if you only have the CLI.
-    2. "+" → Samsung → TV → create a new author certificate.
-    3. Distributor certificate: privilege Public, and add this TV's DUID:
-         ${TV_DUID:-(run ./scripts/tizen-setup.sh to read it)}
-    4. Name the profile, then set TIZEN_SIGN_PROFILE=<that name> in .env and run this again.
-  See TIZEN.md for details.
+  The TV refused the signature. It wants a Samsung certificate tied to this TV.
+  Create one (free Samsung account; no Tizen Studio needed):
+      node scripts/tizen-samsung-cert.mjs
+  It signs you in through the browser, makes the certificate for this TV's DUID
+  (${TV_DUID:-run ./scripts/tizen-setup.sh first to read it}), and switches .env to it.
+  Then run ./scripts/tizen-deploy.sh again. See TIZEN.md for details.
 EOF
   exit 1
 fi
