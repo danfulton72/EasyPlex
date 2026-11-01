@@ -17,7 +17,7 @@ jobs:
           cache: npm
       - name: Install test tools
         run: npm ci
-      - name: Lint web UI and tests
+      - name: Lint web UI, Tizen layer and tests
         run: npm run lint
       - name: Unit and Live TV tests
         run: npm test
@@ -25,3 +25,13 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser tests
         run: npm run test:browser
+      - name: Samsung Tizen build tests
+        run: npm run test:tizen
+      - name: Build Samsung Tizen app folder
+        run: npm run build:tizen
+      - name: Upload Samsung Tizen app folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: EasyPlex-tizen-app
+          path: build/tizen/app
+          if-no-files-found: error

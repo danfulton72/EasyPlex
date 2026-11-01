@@ -1,5 +1,6 @@
 // Plex Media Server API, scoped to the features this client uses.
 import { request, withQuery, identity } from './client.js';
+import { proxiedImage, deviceInfo } from '../platform/device.js';
 
 const SUPPORTED_HUB_TYPES = { movie: 1, show: 1, episode: 1, season: 1, mixed: 1, clip: 1 };
 
@@ -54,9 +55,8 @@ export class Server {
   // only ever downloads and decodes pixels it actually shows.
   image(path, width, height, { blur = 0, quality = 85, format = 'jpeg' } = {}) {
     if (!path) return '';
-    if (typeof EasyPlexVideo !== 'undefined') {
-      return 'https://appassets.androidplatform.net/pleximg?url=' + encodeURIComponent(this.url(path));
-    }
+    const proxied = proxiedImage(this.url(path));
+    if (proxied) return proxied;
     return withQuery(this.uri + '/photo/:/transcode', {
       width, height, minSize: 1, upscale: 1, blur: blur || undefined,
       quality, format, url: path, 'X-Plex-Token': this.token,
@@ -220,9 +220,10 @@ export class Server {
     // protocol=hls) makes the server reject the whole request with
     // "ClientProfileExtra: video transcode target already exists for
     // streaming hls" -> 400 -> playback error on screen.
-    const extra = [
+    // A platform may supply its own list (Samsung TVs need the HLS target added).
+    const extra = (deviceInfo().profileExtra || [
       'add-direct-play-profile(type=videoProfile&container=mp4,mkv&videoCodec=h264,hevc&audioCodec=aac,ac3,eac3)',
-    ].join('+');
+    ]).join('+');
     return withQuery(this.uri + '/video/:/transcode/universal/start.m3u8', Object.assign({}, identity(), {
       path: '/library/metadata/' + item.ratingKey,
       mediaIndex, partIndex: 0,

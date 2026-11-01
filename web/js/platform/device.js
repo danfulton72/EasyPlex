@@ -17,6 +17,15 @@ function native() {
   return typeof EasyPlexVideo !== 'undefined' ? EasyPlexVideo : null;
 }
 
+// Shown under the EasyPlex wordmark on Home.
+export const PLATFORM_LABEL = 'Plex for Android TV';
+
+// Absolute artwork URLs go through the shell's image proxy on the box (the
+// WebView can't always load plain http images from the https page).
+export function proxiedImage(url) {
+  return native() ? 'https://appassets.androidplatform.net/pleximg?url=' + encodeURIComponent(url) : null;
+}
+
 export function exitApp() {
   const n = native();
   if (n && typeof n.exit === 'function') n.exit();

@@ -17,6 +17,7 @@ import { VodScreen } from './vod.js';
 import { isConfigured as vodConfigured } from '../xtream/api.js';
 import { allowedForUser } from '../xtream/limits.js';
 import { isAdmin } from '../session.js';
+import { PLATFORM_LABEL } from '../platform/device.js';
 
 // VOD shows once set up, unless the admin allowed this profile no categories.
 function vodVisible() {
@@ -87,7 +88,7 @@ export function HomeScreen() {
   h('img', 'brand-mark', brand).src = 'img/easyplex-logo.jpg';
   const brandText = h('div', 'brand-text', brand);
   h('div', 'ep-wordmark', brandText).textContent = 'EasyPlex';
-  h('div', 'brand-by', brandText).textContent = 'Plex for Android TV';
+  h('div', 'brand-by', brandText).textContent = PLATFORM_LABEL;
   // The nav is a clip with a sliding track, so any number of libraries fits.
   const navEl = h('nav', 'nav', top);
   const navTrack = h('div', 'nav-track', navEl);

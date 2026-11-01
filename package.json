@@ -1,16 +1,19 @@
 {
   "name": "easyplex-dev-tools",
   "private": true,
-  "description": "Checks and tests for the EasyPlex web UI (not shipped in the APK).",
+  "description": "Checks and tests for the EasyPlex web UI, plus the Samsung Tizen build (not shipped in the APK).",
   "type": "module",
   "scripts": {
-    "lint": "eslint web/js tests",
+    "lint": "eslint web/js tizen/js scripts tests",
     "test": "node --test tests/unit.test.mjs tests/epg.test.mjs tests/livetv.test.mjs tests/xtream.test.mjs tests/sponsorblock.test.mjs",
     "test:browser": "node --test tests/browser.test.mjs",
-    "ci": "npm run lint && npm test && npm run test:browser"
+    "test:tizen": "node --test tests/tizen.test.mjs",
+    "build:tizen": "node scripts/build-tizen.mjs",
+    "ci": "npm run lint && npm test && npm run test:browser && npm run test:tizen"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "esbuild": "^0.25.12",
     "eslint": "^9.39.0",
     "globals": "^15.15.0",
     "jsdom": "^24.1.3",

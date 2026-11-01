@@ -5,7 +5,10 @@ DVR recording, direct Dispatcharr playback and Dispatcharr films (VOD).
 
 Tested on the Humax FVP-4KGTR (Android 9). Intended to work on other Android TV
 and Google TV devices such as the Dangbei DBOX02 (Android 11). Not affiliated
-with Plex, Humax, Dangbei or Google.
+with Plex, Humax, Dangbei, Google or Samsung.
+
+**Samsung TVs:** there is also a Tizen build for Samsung smart TVs from 2019
+onwards (written for a UE55RU7470). See [TIZEN.md](TIZEN.md) to install it.
 
 ## Project layout
 
@@ -18,6 +21,8 @@ with Plex, Humax, Dangbei or Google.
 | `web/js/screens/vod*.js`, `web/css/vod.css` | VOD: setup, category browser, film details and player |
 | `tests/` | Lint, unit, Live TV and browser tests (see BUILDING.md) |
 | `android/` | The Android shell: WebView, Media3 video player and remote-key handling |
+| `tizen/` | The Samsung TV build: AVPlay player, Samsung keys and a JavaScript stand-in for the Android shell (see TIZEN.md) |
+| `scripts/build-tizen.mjs`, `scripts/tizen-*.sh` | Build the Samsung app for 2019 TVs (Chromium 63); set up and install it on the TV |
 | `scripts/make_tv_banner.py` | Generates the Android TV launcher banner from the app icon |
 
 Everything needed to build is in this repository; nothing is downloaded or
