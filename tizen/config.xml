@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/danfulton72/EasyPlex" version="0.1.0" viewmodes="maximized">
+    <!-- Package ID: exactly 10 letters/digits. 5.0 = 2019 Samsung TVs (e.g. UE55RU7470) and newer. -->
+    <tizen:application id="EasyPlexTV.easyplex" package="EasyPlexTV" required_version="5.0"/>
+    <content src="index.html"/>
+    <icon src="icon.png"/>
+    <name>EasyPlex</name>
+    <description>A fast, remote-friendly Plex client with Live TV and Dispatcharr</description>
+    <feature name="http://tizen.org/feature/screen.size.all"/>
+    <tizen:profile name="tv-samsung"/>
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+    <tizen:privilege name="http://developer.samsung.com/privilege/avplay"/>
+    <tizen:privilege name="http://developer.samsung.com/privilege/productinfo"/>
+    <access origin="*" subdomains="true"/>
+    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+</widget>

@@ -35,6 +35,7 @@ npm run lint                 # ESLint over web/js and tests
 npm test                     # unit tests + Live TV tests (jsdom, fake Plex)
 npx playwright install chromium
 npm run test:browser         # whole app in headless Chromium, fake Plex
+npm run test:tizen           # Samsung Tizen build: bundles, ES2018 check, fake-TV run
 npm run ci                   # all of the above
 ```
 
@@ -45,6 +46,9 @@ npm run ci                   # all of the above
   from the Green diagnostics page into the fake and add a test.
 - `tests/browser.test.mjs` — sign-in at TV resolutions, options lists,
   library filter, film playback HUD, failure screen, settings.
+- `tests/tizen.test.mjs` — the Samsung build: Chromium 63-safe syntax, CSS
+  fallbacks, and the app in Chromium with fake AVPlay/Tizen APIs (keys, film
+  playback, live TV bridge). See [TIZEN.md](TIZEN.md).
 
 GitHub Actions runs the **Tests** workflow on every branch push and pull
 request, and the APK build only runs once the tests pass.

@@ -2,6 +2,7 @@
 // settings, the player_api.php client, stream URLs and local resume points.
 import * as store from '../util/store.js';
 import { profileKey } from '../session.js';
+import { proxiedImage } from '../platform/device.js';
 
 const CONFIG_KEY = 'xtream';
 const RESUME_KEY = 'xtreamResume';   // + ':' + Plex profile: each profile has its own
@@ -38,12 +39,10 @@ export function isConfigured() {
   return !!loadConfig();
 }
 
-// Absolute artwork URLs go through the app's image proxy on the box (the
-// WebView can't always load plain http images from the https page).
+// Absolute artwork URLs, through the platform's image proxy when it has one.
 export function imageUrl(url) {
   if (!url || !/^https?:\/\//i.test(url)) return '';
-  if (typeof EasyPlexVideo !== 'undefined') return 'https://appassets.androidplatform.net/pleximg?url=' + encodeURIComponent(url);
-  return url;
+  return proxiedImage(url) || url;
 }
 
 export class XtreamError extends Error {

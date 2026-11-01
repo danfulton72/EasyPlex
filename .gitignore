@@ -11,3 +11,7 @@ __pycache__/
 *.pyc
 node_modules/
 node_modules
+
+# Samsung Tizen build output and local TV settings
+build/
+.env
