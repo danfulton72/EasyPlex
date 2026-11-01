@@ -96,12 +96,22 @@ export function normalizeSegments(payload, categories) {
     .sort((a, b) => a.start - b.start);
 }
 
+// A skip target this close to the end of the video leaves only a fraction of a
+// second before the player finishes — i.e. it ends the video. Crowd-sourced
+// "sponsor" tags frequently run right up to a video's end (they are really
+// outros / end cards); auto-skipping one of those would jump the timeline to the
+// final moment and cut the video off. Treat such targets as a no-skip so the
+// video plays to its true end.
+const MIN_TAIL_MS = 2000;
+
 export function skipTarget(segments, position, duration, ignored = new Set()) {
   const i = segments.findIndex((s, n) => !ignored.has(n) && position >= s.start && position < s.end - 300);
   if (i < 0) return null;
   let end = segments[i].end;
   for (let j = i + 1; j < segments.length && segments[j].start <= end; j++) end = Math.max(end, segments[j].end);
-  return { index: i, target: duration > 0 ? Math.min(end, duration - 500) : end };
+  const target = duration > 0 ? Math.min(end, duration - 500) : end;
+  if (duration > 0 && target > duration - MIN_TAIL_MS) return null;
+  return { index: i, target };
 }
 
 // Probe whether the configured Tube Archivist server is reachable AND the

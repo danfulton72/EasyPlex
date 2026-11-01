@@ -65,8 +65,26 @@ test('skipTarget skips once, merges overlaps, and respects duration', () => {
   const segments = [{ start: 1000, end: 4000 }, { start: 3500, end: 6000 }];
   assert.deepEqual(skipTarget(segments, 1500, 10000), { index: 0, target: 6000 });
   assert.equal(skipTarget(segments, 1500, 10000, new Set([0])), null);
-  assert.deepEqual(skipTarget(segments, 4000, 5200), { index: 1, target: 4700 });
+  // A skip that would land within the final 2s of the video is now a no-skip:
+  // it would leave ~0.5s and the player would end the video (cut-off).
+  assert.equal(skipTarget(segments, 4000, 5200), null);
   assert.equal(skipTarget(segments, 7000, 10000), null);
+});
+
+test('skipTarget: does not auto-skip a segment that runs to the end of the video', () => {
+  // Real-world repro (LEGO Car vs Giant Speed Bump, 679774ms / 11:19): the
+  // last "sponsor" segment [667021, 679772.8] ends exactly at the video's end
+  // (really an outro). Old code skipped to duration-500 (679274ms), leaving
+  // 500ms so the player finished almost immediately — the video cut off.
+  const segments = [
+    { start: 208148, end: 275864 },   // normal mid-video sponsor
+    { start: 667021, end: 679772.8 }, // runs to the very end
+  ];
+  const duration = 679774;
+  // The mid-video sponsor still skips normally.
+  assert.deepEqual(skipTarget(segments, 209000, duration), { index: 0, target: 275864 });
+  // The end-running segment is NOT skipped (would end the video 0.5s later).
+  assert.equal(skipTarget(segments, 667864, duration), null);
 });
 
 // verifyConnection probes a bogus video id: 404 means auth passed (token good),
