@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "lint": "eslint web/js tests",
-    "test": "node --test tests/unit.test.mjs tests/livetv.test.mjs tests/xtream.test.mjs tests/sponsorblock.test.mjs",
+    "test": "node --test tests/unit.test.mjs tests/epg.test.mjs tests/livetv.test.mjs tests/xtream.test.mjs tests/sponsorblock.test.mjs",
     "test:browser": "node --test tests/browser.test.mjs",
     "ci": "npm run lint && npm test && npm run test:browser"
   },

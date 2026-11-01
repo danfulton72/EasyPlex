@@ -89,9 +89,17 @@ export function createRecord(ctx) {
     const selected = view === 'grid' ? ctx.guide.selected() : null;
     const m = selected?.programme || (view === 'guide' ? ctx.dayguide.selectedProgramme() : null);
     if (!m) { ctx.say('No programme selected for recording'); return; }
-    if (!m.guid && !m.ratingKey) { ctx.say('Plex EPG lacks a programme GUID; cannot create a recording.'); return; }
-    const { start, end } = airingBounds(m);
     const row = selected?.row || ctx.dayguide.state.channel;
+    // A Dispatcharr-sourced guide programme has no Plex guid. Borrow one with a
+    // single targeted grid lookup (matched by time) so it can still be recorded;
+    // this touches Plex only now, not for the whole guide.
+    if (!m.guid && !m.ratingKey) {
+      if (!row) { ctx.say('Plex EPG lacks a programme GUID; cannot create a recording.'); return; }
+      ctx.say('Looking up this programme in Plex…');
+      await ctx.channels.resolveGuid(row, m);
+      if (!m.guid && !m.ratingKey) { ctx.say('Could not find this programme in Plex to record it.'); return; }
+    }
+    const { start, end } = airingBounds(m);
     ctx.say('Getting recording options for ' + titleOf(m) + '…');
     try {
       const { opts, sections } = await fetchOptions(m);

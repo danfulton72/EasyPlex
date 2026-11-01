@@ -5,6 +5,7 @@ import {
   SLOT, HOUR, DAY, GUIDE_TTL, SPAN, ROWS, localDate, airingBounds, airingIn, hhmm, dayLabel, mins,
   titleOf, mainTitle, subTitle, channelLabel, chanKey, scheduledGuidSet,
 } from './helpers.js';
+import { darrIds, dayShowsFor } from './epg.js';
 
 // Guide days survive leaving and reopening Live TV during one app session.
 // Keys are "<local YYYY-MM-DD>:<gridKey>", values { time, shows }.
@@ -39,6 +40,19 @@ export function createGuide(ctx) {
     const cacheKey = date + ':' + row.gridKey;
     const hit = cache.get(cacheKey);
     if (hit && Date.now() - hit.time < GUIDE_TTL) return hit.shows;
+    // Prefer Dispatcharr's own EPG when it loaded and carries this channel —
+    // the guide's programme data comes straight from it, not from Plex.
+    const epg = ctx.channels.state.epg;
+    if (epg.source === 'dispatcharr' && epg.byChannel) {
+      const id = darrIds(row).find(x => epg.byChannel.has(x));
+      if (id) {
+        const shows = dayShowsFor(epg.byChannel, id, date);
+        cache.set(cacheKey, { time: Date.now(), shows });
+        return shows;
+      }
+      // This channel isn't in the feed: serve it from Plex below (silent — a
+      // single missing channel isn't the same as Dispatcharr being down).
+    }
     let anyOk = false;
     for (const prefix of ctx.channels.state.providers) {
       try {

@@ -8,7 +8,8 @@ import { h, setText } from '../../util/dom.js';
 import { getRaw, setRaw } from '../../util/store.js';
 import { signOut } from '../../session.js';
 import { showOptions } from '../../ui/options.js';
-import { channelLabel, channelGroup, chanKey, findByNumber, epgProviderPaths, channelRowsFrom, safeObject } from './helpers.js';
+import { channelLabel, channelGroup, chanKey, findByNumber, epgProviderPaths, channelRowsFrom, safeObject, localDate, airingBounds } from './helpers.js';
+import { parseXmltv, extractDispatcharrEpgUrl, epgUrlFromHdhrBase, matchPlexAiring } from './epg.js';
 
 const FAV_KEY = 'easyplexLiveFavourites';
 const FILTER_KEY = 'easyplexLiveFilter';
@@ -19,7 +20,11 @@ export function createChannels(ctx) {
   try { favourites = new Set(JSON.parse(getRaw(FAV_KEY) || '[]')); } catch (e) { favourites = new Set(); }
   // all = every channel; list = 'auto' | 'fav' | 'all' | 'group:<name>'.
   // debugResponses = what the discovery endpoints returned, for diagnostics.
-  const state = { dvrs: [], providers: [], all: [], list: getRaw(FILTER_KEY) || 'auto', debugResponses: [] };
+  // epg = the Dispatcharr-direct guide source. source is 'dispatcharr' once the
+  // XMLTV feed is loaded (guide programmes come straight from it) or 'plex' when
+  // we fall back to Plex's copy. byChannel is the parsed feed (id -> programmes).
+  const state = { dvrs: [], providers: [], all: [], list: getRaw(FILTER_KEY) || 'auto', debugResponses: [],
+    epg: { source: 'plex', url: '', byChannel: null, channels: null, fetchedAt: 0, failNotified: false } };
   const digits = { value: '', timer: 0, el: null };
 
   // ---- loading ----------------------------------------------------------------
@@ -77,11 +82,84 @@ export function createChannels(ctx) {
         return;
       }
       state.all = rows;
+      // Guide comes straight from Dispatcharr's XMLTV when we can reach it; on
+      // any failure we keep Plex's cached copy and note the fallback once.
+      await loadDispatcharrEpg();
+      if (!ctx.state.alive) return;
       ctx.guide.activate();
     } catch (e) {
       setText(ctx.info, 'Live TV unavailable: ' + e.message);
       ctx.setView('empty');
     }
+  }
+
+  // ---- Dispatcharr-direct guide (EPG) ----------------------------------------
+
+  // Fetch Dispatcharr's XMLTV EPG directly, bypassing Plex's cached copy. The
+  // url comes from the DVR's lineup attribute (the exact feed Plex pulls from),
+  // else is derived from the /hdhr device base. Bounded so an unreachable
+  // Dispatcharr can't hold the guide up: on success the guide reads programmes
+  // straight from the feed; on any failure we keep Plex's source and note the
+  // fallback once.
+  async function loadDispatcharrEpg(timeoutMs = 8000) {
+    const epg = state.epg;
+    const firstDevice = ((state.dvrs[0] && (state.dvrs[0].Device || state.dvrs[0].Devices)) || [])[0] || {};
+    epg.url = extractDispatcharrEpgUrl(state.dvrs) || epgUrlFromHdhrBase(firstDevice.uri || '');
+    if (!epg.url) { epg.source = 'plex'; return false; }
+    const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : 0;
+    try {
+      const response = await fetch(epg.url, { signal: controller ? controller.signal : undefined });
+      if (!response.ok) throw new Error('EPG HTTP ' + response.status);
+      const xml = await response.text();
+      const parsed = parseXmltv(xml);
+      if (!parsed.byChannel.size) throw new Error('EPG had no channels');
+      epg.byChannel = parsed.byChannel;
+      epg.channels = parsed.channels;
+      epg.fetchedAt = Date.now();
+      epg.source = 'dispatcharr';
+      epg.failNotified = false;
+      return true;
+    } catch (err) {
+      epg.source = 'plex';
+      epg.failNotified = false;
+      notifyEpgFallback();
+      return false;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  // Brief, once-per-session note that the guide fell back to Plex.
+  function notifyEpgFallback() {
+    const epg = state.epg;
+    if (epg.failNotified) return;
+    epg.failNotified = true;
+    ctx.say('Guide: Dispatcharr unavailable — showing Plex listings');
+  }
+
+  // Borrow a Plex guid for a Dispatcharr-sourced programme so it can still be
+  // recorded. The displayed guide has no Plex guid; one targeted grid fetch for
+  // the channel/day, matched by start time, yields the Plex airing to borrow the
+  // guid/ratingKey from. Resolves true once m has a usable guid.
+  async function resolveGuid(row, m) {
+    if (!row || !m) return false;
+    if (m.guid || m.ratingKey) return true;
+    const target = airingBounds(m).start;
+    const date = Number.isFinite(target) ? localDate(target) : localDate(Date.now());
+    for (const prefix of state.providers) {
+      try {
+        const data = await ctx.server.get(prefix + '/grid', { channelGridKey: row.gridKey, date });
+        const shows = data.Metadata || data.Airing || data.Media || [];
+        const hit = matchPlexAiring(shows, m);
+        if (!hit) continue;
+        if (hit.guid) m.guid = hit.guid;
+        if (hit.ratingKey) m.ratingKey = hit.ratingKey;
+        if (hit.grandparentGuid) m.grandparentGuid = hit.grandparentGuid;
+        if (m.guid || m.ratingKey) return true;
+      } catch (e) { /* try the next provider */ }
+    }
+    return false;
   }
 
   // ---- favourites and lists ---------------------------------------------------
@@ -231,7 +309,8 @@ export function createChannels(ctx) {
   function destroy() { clearTimeout(digits.timer); }
 
   return {
-    state, load, isFavourite, listName, showingFavourites, applyList, toggleFavourite, openListMenu,
+    state, load, loadDispatcharrEpg, notifyEpgFallback, resolveGuid,
+    isFavourite, listName, showingFavourites, applyList, toggleFavourite, openListMenu,
     lastChannelKey, rememberLastChannel, digitKey, destroy,
   };
 }

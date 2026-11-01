@@ -295,7 +295,8 @@ test('a failed stream offers retry, next channel, back', async () => {
   window.__easyplexLivePlayError('NATIVE_STALL');
   assert.equal(native.closed, closed + 1);
   assert.ok(s.el.classList.contains('ep-grid-active'));
-  assert.deepEqual(menuItems(), ['Try again', 'Watch next channel  (Chan3)', 'Back to guide']);
+  // The failed stream was a direct Dispatcharr one, so a Plex fallback is offered.
+  assert.deepEqual(menuItems(), ['Try again', 'Try via Plex (transcode)', 'Watch next channel  (Chan3)', 'Back to guide']);
   press('enter');
   await sleep(50);
   assert.equal(native.opened.at(-1), 'http://disp/ch2');

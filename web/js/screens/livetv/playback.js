@@ -9,7 +9,8 @@ export function createPlayback(ctx) {
   // playing = row on screen; last = previous channel; target = where zapping
   // is heading; seq invalidates slower tune attempts; plexSession = Plex
   // transcode session to stop when leaving.
-  const state = { playing: null, last: null, target: null, seq: 0, plexSession: '' };
+  const state = { playing: null, last: null, target: null, seq: 0, plexSession: '',
+    forcePlex: false, lastSource: '' };
   let zapTimer = 0, hdhrLineup = null, hdhrPending = null;
 
   // Native now/next banner over the video (the WebView is hidden while playing).
@@ -82,6 +83,7 @@ export function createPlayback(ctx) {
       ' (ids ' + ids.join(',') + '; ' + rows.length + ' available)');
     const url = String(candidate.URL || '');
     if (!/^https?:\/\//i.test(url)) throw new Error('Channel has no HTTP stream URL');
+    state.lastSource = 'direct';
     start(url, row);
   }
 
@@ -150,6 +152,7 @@ export function createPlayback(ctx) {
       throw new Error('Plex HLS decision HTTP ' + response.status + ' · ' + body.replace(/<[^>]*>/g, ' ').slice(0, 200));
     }
     if (seq !== state.seq) return;
+    state.lastSource = 'plex';
     start(playUrl, row);
     state.plexSession = playbackSession;
   }
@@ -189,6 +192,8 @@ export function createPlayback(ctx) {
       focus: 0,
       items: [
         { label: 'Try again', run: () => tuneRow(failedRow) },
+        tunerDeviceUri() && state.lastSource === 'direct' &&
+          { label: 'Try via Plex (transcode)', run: () => { state.forcePlex = true; tuneRow(failedRow); state.forcePlex = false; } },
         next && { label: 'Watch next channel  (' + channelLabel(next.name || next.channel) + ')', run: () => tuneRow(next) },
         { label: 'Back to guide', run: () => {} },
       ],
@@ -200,9 +205,30 @@ export function createPlayback(ctx) {
     const seq = ++state.seq;
     const zapping = ctx.state.view === 'playing';
     if (!zapping) ctx.say('Tuning ' + row.channel + '…');
+    const useDirect = tunerDeviceUri() && !state.forcePlex;
+    if (useDirect) {
+      try {
+        await playDispatcharr(row, seq);
+        return;
+      } catch (err) {
+        if (seq !== state.seq) return;
+        // Dispatcharr failed (lineup, channel match, or no stream URL): fall
+        // back to Plex's live session and say so briefly.
+        if (zapping) banner(row, 'Dispatcharr unavailable — trying Plex…');
+        else ctx.say('Dispatcharr unavailable — using Plex…');
+        try {
+          await playViaPlex(row, seq);
+          return;
+        } catch (plexErr) {
+          if (seq !== state.seq) return;
+          if (zapping) banner(row, 'Cannot tune: ' + plexErr.message);
+          else ctx.say(row.channel + ': ' + plexErr.message);
+          return;
+        }
+      }
+    }
     try {
-      if (tunerDeviceUri()) await playDispatcharr(row, seq);
-      else await playViaPlex(row, seq);
+      await playViaPlex(row, seq);
     } catch (err) {
       if (seq !== state.seq) return;
       if (zapping) banner(row, 'Cannot tune: ' + err.message);
